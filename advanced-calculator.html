@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Calculator</title>
+    <style>
+        :root {
+            --primary: #2d3142;
+            --secondary: #4f5d75;
+            --accent: #586994;
+            --light: #eef0f2;
+            --highlight: #bfc0c0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--primary);
+            overflow-x: hidden;
+        }
+
+        .header {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to bottom right, var(--primary), var(--secondary));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-content {
+            text-align: center;
+            color: var(--light);
+            z-index: 2;
+            transform: translateY(0);
+            opacity: 1;
+            transition: transform 0.8s ease, opacity 0.8s ease;
+        }
+
+        .header-title {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--light);
+            animation: bounce 2s infinite;
+            cursor: pointer;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0) translateX(-50%);
+            }
+            40% {
+                transform: translateY(-20px) translateX(-50%);
+            }
+            60% {
+                transform: translateY(-10px) translateX(-50%);
+            }
+        }
+
+        .parallax-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .parallax-item {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .calculator-container {
+            min-height: 100vh;
+            padding: 4rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--light);
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 400px;
+            background: var(--primary);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .display {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 130px;
+        }
+
+        .history {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            min-height: 1.5rem;
+            text-align: right;
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+        }
+
+        .current-input {
+            font-size: 2.5rem;
+            color: var(--primary);
+            text-align: right;
+            overflow-x: auto;
+            white-space: nowrap;
+            animation: fadeIn 0.3s;
+        }
+
+        .result {
+            font-size: 1.2rem;
+            color: var(--accent);
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 1rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--secondary);
+            color: var(--light);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .operator {
+            background: var(--accent);
+        }
+
+        .equals {
+            background: #ff9a3c;
+            grid-column: span 2;
+        }
+
+        .clear, .backspace {
+            background: #e63946;
+        }
+
+        .advanced-section {
+            margin-top: 2rem;
+            width: 100%;
+            max-width: 400px;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .advanced-toggle {
+            background: var(--secondary);
+            color: var(--light);
+            padding: 0.75rem;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .advanced-toggle:hover {
+            background: var(--accent);
+        }
+
+        .advanced-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+
+        .advanced-buttons.active {
+            max-height: 400px;
+        }
+
+        .function {
+            background: #586994;
+        }
+
+        .history-section {
+            margin-top: 3rem;
+            width: 100%;
+            max-width: 400px;
+            background: var(--light);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .history-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--highlight);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .history-item:hover {
+            background-color: rgba(191, 192, 192, 0.3);
+        }
+
+        .history-expression {
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+
+        .history-result {
+            font-size: 1.1rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .footer {
+            padding: 2rem;
+            text-align: center;
+            background: var(--primary);
+            color: var(--light);
+            margin-top: 3rem;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(79, 93, 117, 0.3);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+        }
+
+        .visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 3rem;
+            }
+            .header-subtitle {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="parallax-bg" id="parallax-bg"></div>
+        <div class="header-content">
+            <h1 class="header-title">Quantum Calculator</h1>
+            <p class="header-subtitle">Beyond ordinary calculations</p>
+        </div>
+        <div class="scroll-indicator" id="scroll-down">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </header>
+
+    <main class="calculator-container">
+        <div class="calculator" id="calculator">
+            <div class="display">
+                <div class="history" id="history-display"></div>
+                <div class="current-input" id="input">0</div>
+                <div class="result" id="result"></div>
+            </div>
+            <div class="buttons">
+                <button class="clear" data-action="clear">C</button>
+                <button class="backspace" data-action="backspace">⌫</button>
+                <button class="operator" data-action="operator">(</button>
+                <button class="operator" data-action="operator">)</button>
+                
+                <button data-action="number">7</button>
+                <button data-action="number">8</button>
+                <button data-action="number">9</button>
+                <button class="operator" data-action="operator">÷</button>
+                
+                <button data-action="number">4</button>
+                <button data-action="number">5</button>
+                <button data-action="number">6</button>
+                <button class="operator" data-action="operator">×</button>
+                
+                <button data-action="number">1</button>
+                <button data-action="number">2</button>
+                <button data-action="number">3</button>
+                <button class="operator" data-action="operator">-</button>
+                
+                <button data-action="number">0</button>
+                <button data-action="number">.</button>
+                <button class="equals" data-action="calculate">=</button>
+                <button class="operator" data-action="operator">+</button>
+            </div>
+        </div>
+
+        <div class="advanced-section" id="advanced-section">
+            <div class="advanced-toggle" id="advanced-toggle">Advanced Functions</div>
+            <div class="advanced-buttons" id="advanced-buttons">
+                <button class="function" data-action="function" data-function="sin">sin</button>
+                <button class="function" data-action="function" data-function="cos">cos</button>
+                <button class="function" data-action="function" data-function="tan">tan</button>
+                <button class="function" data-action="function" data-function="log">log</button>
+                
+                <button class="function" data-action="function" data-function="sqrt">√</button>
+                <button class="function" data-action="function" data-function="pow">^</button>
+                <button class="function" data-action="function" data-function="pi">π</button>
+                <button class="function" data-action="function" data-function="e">e</button>
+                
+                <button class="function" data-action="function" data-function="factorial">!</button>
+                <button class="function" data-action="function" data-function="abs">|x|</button>
+                <button class="function" data-action="function" data-function="ln">ln</button>
+                <button class="function" data-action="function" data-function="exp">exp</button>
+            </div>
+        </div>
+
+        <div class="history-section" id="history-section">
+            <h2 class="history-title">Calculation History</h2>
+            <div class="history-list" id="history-list">
+                <!-- History items will be dynamically added here -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>Quantum Calculator © 2025</p>
+    </footer>
+
+    <script>
+        // Create parallax background
+        function createParallaxBackground() {
+            const bg = document.getElementById('parallax-bg');
+            const itemCount = 20;
+            
+            for (let i = 0; i < itemCount; i++) {
+                const size = Math.random() * 50 + 10;
+                const item = document.createElement('div');
+                item.className = 'parallax-item';
+                item.style.width = `${size}px`;
+                item.style.height = `${size}px`;
+                item.style.left = `${Math.random() * 100}%`;
+                item.style.top = `${Math.random() * 100}%`;
+                item.style.opacity = Math.random() * 0.5 + 0.1;
+                
+                // Store random movement values for animation
+                item.dataset.speedX = (Math.random() * 2 - 1) * 0.05;
+                item.dataset.speedY = (Math.random() * 2 - 1) * 0.05;
+                
+                bg.appendChild(item);
+            }
+        }
+
+        // Animate parallax items
+        function animateParallax() {
+            const items = document.querySelectorAll('.parallax-item');
+            
+            items.forEach(item => {
+                const currentX = parseFloat(item.style.left);
+                const currentY = parseFloat(item.style.top);
+                const speedX = parseFloat(item.dataset.speedX);
+                const speedY = parseFloat(item.dataset.speedY);
+                
+                let newX = currentX + speedX;
+                let newY = currentY + speedY;
+                
+                // Bounce off edges
+                if (newX <= 0 || newX >= 100) {
+                    item.dataset.speedX = -speedX;
+                    newX = currentX;
+                }
+                
+                if (newY <= 0 || newY >= 100) {
+                    item.dataset.speedY = -speedY;
+                    newY = currentY;
+                }
+                
+                item.style.left = `${newX}%`;
+                item.style.top = `${newY}%`;
+            });
+            
+            requestAnimationFrame(animateParallax);
+        }
+
+        // Calculator functionality
+        class Calculator {
+            constructor() {
+                this.currentInput = '0';
+                this.result = '';
+                this.history = '';
+                this.calculationHistory = [];
+                this.lastOperator = false;
+                this.init();
+            }
+            
+            init() {
+                // Get DOM elements
+                this.inputDisplay = document.getElementById('input');
+                this.resultDisplay = document.getElementById('result');
+                this.historyDisplay = document.getElementById('history-display');
+                this.historyList = document.getElementById('history-list');
+                
+                // Set up event listeners
+                document.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        this.handleButtonClick(e.target);
+                        this.addRippleEffect(e);
+                    });
+                });
+                
+                // Advanced functions toggle
+                document.getElementById('advanced-toggle').addEventListener('click', () => {
+                    document.getElementById('advanced-buttons').classList.toggle('active');
+                });
+                
+                // Scroll to calculator
+                document.getElementById('scroll-down').addEventListener('click', () => {
+                    document.querySelector('.calculator-container').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+                
+                // Scroll animations
+                this.setupScrollAnimations();
+            }
+            
+            handleButtonClick(button) {
+                const action = button.dataset.action;
+                
+                switch (action) {
+                    case 'number':
+                        this.appendNumber(button.textContent);
+                        break;
+                    case 'operator':
+                        this.appendOperator(button.textContent);
+                        break;
+                    case 'calculate':
+                        this.calculate();
+                        break;
+                    case 'clear':
+                        this.clear();
+                        break;
+                    case 'backspace':
+                        this.backspace();
+                        break;
+                    case 'function':
+                        this.applyFunction(button.dataset.function);
+                        break;
+                }
+                
+                this.updateDisplay();
+            }
+            
+            appendNumber(number) {
+                if (this.currentInput === '0' && number !== '.') {
+                    this.currentInput = number;
+                } else if (number === '.' && this.currentInput.includes('.')) {
+                    // Prevent multiple decimal points
+                    return;
+                } else {
+                    this.currentInput += number;
+                }
+                this.lastOperator = false;
+            }
+            
+            appendOperator(operator) {
+                // Replace mathematical symbols with their JavaScript equivalents
+                const operatorMap = {
+                    '×': '*',
+                    '÷': '/'
+                };
+                
+                const actualOperator = operatorMap[operator] || operator;
+                
+                if (this.lastOperator && !['(', ')'].includes(operator)) {
+                    // Replace the last operator
+                    this.currentInput = this.currentInput.slice(0, -1) + actualOperator;
+                } else {
+                    this.currentInput += actualOperator;
+                }
+                
+                this.lastOperator = !['(', ')'].includes(operator);
+            }
+            
+            applyFunction(func) {
+                switch (func) {
+                    case 'sin':
+                    case 'cos':
+                    case 'tan':
+                    case 'log':
+                    case 'sqrt':
+                    case 'abs':
+                    case 'ln':
+                    case 'exp':
+                        this.currentInput += `Math.${func === 'ln' ? 'log' : func}(`;
+                        break;
+                    case 'pow':
+                        this.currentInput += '**';
+                        break;
+                    case 'factorial':
+                        this.currentInput += '!';
+                        break;
+                    case 'pi':
+                        this.currentInput += 'Math.PI';
+                        break;
+                    case 'e':
+                        this.currentInput += 'Math.E';
+                        break;
+                }
+                this.lastOperator = false;
+            }
+            
+            calculate() {
+                try {
+                    // Save the expression to history
+                    this.history = this.formatExpression(this.currentInput);
+                    
+                    // Process factorial operator
+                    let processedInput = this.processFactorials(this.currentInput);
+                    
+                    // Evaluate the expression
+                    const result = eval(processedInput);
+                    
+                    // Save to calculation history
+                    this.addToHistory(this.history, result);
+                    
+                    // Update display
+                    this.result = result;
+                    this.currentInput = result.toString();
+                } catch (error) {
+                    this.result = 'Error';
+                }
+            }
+            
+            processFactorials(expression) {
+                // Simple factorial implementation
+                const factorialRegex = /(\d+)!/g;
+                return expression.replace(factorialRegex, (match, number) => {
+                    return this.factorial(parseInt(number));
+                });
+            }
+            
+            factorial(n) {
+                if (n === 0 || n === 1) return 1;
+                let result = 1;
+                for (let i = 2; i <= n; i++) {
+                    result *= i;
+                }
+                return result;
+            }
+            
+            formatExpression(expression) {
+                return expression
+                    .replace(/Math.sin/g, 'sin')
+                    .replace(/Math.cos/g, 'cos')
+                    .replace(/Math.tan/g, 'tan')
+                    .replace(/Math.log/g, 'log')
+                    .replace(/Math.sqrt/g, '√')
+                    .replace(/Math.abs/g, '|')
+                    .replace(/Math.PI/g, 'π')
+                    .replace(/Math.E/g, 'e')
+                    .replace(/\*\*/g, '^')
+                    .replace(/\*/g, '×')
+                    .replace(/\//g, '÷');
+            }
+            
+            clear() {
+                this.currentInput = '0';
+                this.result = '';
+                this.history = '';
+                this.lastOperator = false;
+            }
+            
+            backspace() {
+                if (this.currentInput.length > 1) {
+                    this.currentInput = this.currentInput.slice(0, -1);
+                } else {
+                    this.currentInput = '0';
+                }
+                this.lastOperator = false;
+            }
+            
+            updateDisplay() {
+                this.inputDisplay.textContent = this.formatExpression(this.currentInput);
+                this.resultDisplay.textContent = this.result;
+                this.historyDisplay.textContent = this.history;
+            }
+            
+            addToHistory(expression, result) {
+                // Create history item element
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-expression">${expression}</div>
+                    <div class="history-result">${result}</div>
+                `;
+                
+                // Add click event to reuse the expression
+                historyItem.addEventListener('click', () => {
+                    this.currentInput = result.toString();
+                    this.updateDisplay();
+                });
+                
+                // Add to history list
+                this.historyList.prepend(historyItem);
+                
+                // Store in memory (limit to 10 items)
+                this.calculationHistory.unshift({ expression, result });
+                if (this.calculationHistory.length > 10) {
+                    this.calculationHistory.pop();
+                }
+            }
+            
+            addRippleEffect(event) {
+                const button = event.target;
+                const ripple = document.createElement('span');
+                ripple.className = 'ripple';
+                
+                const diameter = Math.max(button.clientWidth, button.clientHeight);
+                const radius = diameter / 2;
+                
+                ripple.style.width = ripple.style.height = `${diameter}px`;
+                ripple.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+                ripple.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+                
+                button.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            }
+            
+            setupScrollAnimations() {
+                const elements = [
+                    document.getElementById('calculator'),
+                    document.getElementById('advanced-section'),
+                    document.getElementById('history-section')
+                ];
+                
+                const checkVisibility = () => {
+                    elements.forEach(element => {
+                        const position = element.getBoundingClientRect();
+                        
+                        // If element is in viewport
+                        if (position.top < window.innerHeight * 0.8) {
+                            element.classList.add('visible');
+                        }
+                    });
+                };
+                
+                // Initial check
+                checkVisibility();
+                
+                // Check on scroll
+                window.addEventListener('scroll', checkVisibility);
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            createParallaxBackground();
+            animateParallax();
+            new Calculator();
+        });
+    </script>
+</body>
+</html>
